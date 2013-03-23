@@ -1,0 +1,84 @@
+script
+  var alertClick = function() {
+    return confirm('Delete this post ?');
+  }
+  
+  $(function(){
+  
+    $('.recentPosts').delegate('a.editPost', 'click', function(){
+      var oldText = $(this).parents('.box').find('p').text();
+      $(this).parents('.box')
+        .find('p').slideUp().end()
+        .prepend('<div class="inputArea"><textarea>' + oldText + '</textarea></div>')
+        .find('.inputArea').hide().slideDown();
+      $(this).parent().prepend('<a class="confirmEdit" href="#">ok</a><a class="cancelEdit" href="#">cancel</a>');
+      $(this).hide();
+      return false;
+    });
+    
+    $('.recentPosts').delegate('a.cancelEdit', 'click', function(){
+      var el;
+      el = $(this).parents('.box');
+      el.find('.inputArea').slideUp(function(){
+        $(this).remove();
+      });
+      el.find('p').slideDown();
+      el.find('a.confirmEdit, a.cancelEdit').remove();
+      el.find('a.editPost').show();
+      return false;
+    });
+    
+    $('.recentPosts').delegate('a.confirmEdit', 'click', function(){
+      var el, content, id;
+      el = $(this).parents('.box');
+      content = el.find('textarea').val();
+      id = el.attr('id');
+      el.find('.ajaxLoad').show();
+      
+      if(content.length) {
+        $.ajax({
+          type: "POST",
+          url: "/post/edit/" + id,
+          data: {
+            post: content
+          },
+          success: function(msg) {
+            el.find('.inputArea').slideUp(function(){
+              $(this).remove()
+            });
+            el.find('a.confirmEdit, a.cancelEdit').remove();
+            el.find('a.editPost').show();
+            el.find('p').html(msg).show();
+          },
+          error: function(e, s, t) {
+            el.find('.control').append('<span class="error">Error: ' + t + '</span>');
+          },
+          complete: function() {
+          el.find('.ajaxLoad').hide();
+          }
+        });
+      }
+      
+      return false;
+    });
+    
+  });
+
+div.wrapper
+  h1 jGrammar
+  form(action='/post/add', method='post')
+    div.inputArea
+      textarea(name='post')
+    div.submitArea
+      input(type='submit', value='Post')
+  div.recentPosts
+    - if (posts && posts.length)
+      - each post in posts
+        div.box(id='#{post.id}')
+          p!= post.value
+          div.control.clearfix
+            a(href='#', class='editPost') edit
+            a(onclick='return alertClick()', href='/post/delete/#{post.id}') delete
+            img(class='ajaxLoad', src='/images/ajax-loader.gif', alt='loading')
+    - else
+      div.empty There isn't any post. Try create one!
